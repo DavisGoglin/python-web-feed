@@ -1,2 +1,2 @@
 # python-web-rss
-Create an RSS feed from any webpage
+Create an RSS/ATOM feed from any webpage
