@@ -1,7 +1,9 @@
 from selector import Selector
 import requests
 import lxml
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 class Feed:
 
@@ -33,9 +35,11 @@ class Feed:
         self.entries = []
 
     def load(self, url=None):
+        logging.info("Loading data from {}".format(url))
         url = url or self.url
-        self._raw = requests.get(url)
-        self._raw.raise_for_status()
+        request = requests.get(url)
+        request.raise_for_status()
+        self._raw = request.text
 
     def parse(self, html=None):
         html = html or self._raw
@@ -46,29 +50,30 @@ class Feed:
 
     def _parse_entries(self, htmltree):
         _entries = []
-        print("Working on entries")
+        logging.info("Working on entries")
         config_entries = self.config['entries']
 
         entries_selector = Selector(config_entries, multiple=True)
 
-        print("Using selector \"{}\" with selector type {}".format(
+        logging.info("Using selector \"{}\" with selector type {}".format(
             entries_selector.selector,
             entries_selector.SelectorType.__class__.__name__,
         ))
 
         result_entries = entries_selector.result(htmltree)
-        print('Got {} entries'.format(
+        logging.info('Got {} entries'.format(
             len(result_entries)
         ))
 
         for entry in result_entries:
-            print('Working on entry {}'.format(entry))
+            logging.info('Working on entry {}'.format(entry))
             tmp_entry = {}
 
             for property in self._entry_selector_properties:
                 if property not in config_entries:
+                    logging.info("No config found for {}".format(property))
                     continue
-                print('Working on prop {}'.format(property))
+                logging.info('Working on prop {}'.format(property))
 
                 args = {
                     'selector': config_entries[property],
@@ -76,6 +81,14 @@ class Feed:
                 if property in self._dates:
                     args['is_date'] = True
                 selector = Selector(**args)
+
+                logging.info(
+                    "Using selector \"{}\" with selector type {}".format(
+                        selector.selector,
+                        selector.SelectorType.__class__.__name__,
+                    )
+                )
+
                 tmp_entry[property] = selector.result(entry)
 
             _entries.append(tmp_entry)
@@ -88,9 +101,10 @@ class Feed:
         # Search for each property option
         for property in self._selector_properties:
             if property not in config_props:
+                logging.info("No config found for {}".format(property))
                 continue
 
-            print('Working on {}'.format(property))
+            logging.info('Working on {}'.format(property))
 
             args = {
                 'selector': config_props[property],
@@ -99,13 +113,13 @@ class Feed:
                 args['is_date'] = True
             selector = Selector(**args)
 
-            print("Using selector \"{}\" with selector type {}".format(
+            logging.info("Using selector \"{}\" with selector type {}".format(
                 selector.selector,
                 selector.SelectorType.__class__.__name__,
             ))
 
             result_text = selector.result(htmltree)
-            print('Found prop value {}'.format(result_text))
+            logging.info('Found prop value {}'.format(result_text))
 
             _properties[property] = result_text
 
@@ -116,17 +130,19 @@ if __name__ == '__main__':
     import yaml
     import pprint
 
+    logging.basicConfig(level=logging.DEBUG)
+
     with open('example.yaml', 'r') as f:
         config = yaml.load(f, Loader=yaml.BaseLoader)
-
-    feed = Feed(config['feeds']['example'])
-
     with open('example.html', 'r') as f:
         html = f.read()
 
-    pp = pprint.PrettyPrinter()
+    feed = Feed(config['feeds']['example'])
+
     feed.parse(html)
+
     print("Properties")
+    pp = pprint.PrettyPrinter()
     pp.pprint(feed.properties)
     print("Entries")
     pp.pprint(feed.entries)

@@ -1,3 +1,5 @@
+timezone: America/Los_Angeles
+date_rounding: day
 feeds:
   example:
     url: http://localhost:8000/example.html
