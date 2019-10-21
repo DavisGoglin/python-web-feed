@@ -1,0 +1,23 @@
+feeds:
+  example:
+    url: http://localhost:8000/example.html
+
+    properties:
+      updated:
+        selector_type: jquery
+        selector: "li:contains('Last updated')"
+        regex: "Last updated : (.*)"
+        date_format: '%b-%d-%Y %H:%M:%S %p'
+
+      title: .info-text > h1
+
+    entries:
+      selector_type: xpath
+      # div.chapter-list > div.row
+      selector: "//div[@class='chapter-list']/div[@class='row']"
+
+      title: "span > a:first"
+      updated: "span:nth-child(3)"
+      url:
+        selector_type: xpath
+        selector: "span[1]/a/@href"
