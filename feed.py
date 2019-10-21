@@ -1,53 +1,9 @@
+from selector import Selector
 import requests
 import lxml
-import re
-import dateparser
-from pyquery import PyQuery
-
-
-class Selector:
-    def __init__(self, selector):
-        self.selector = selector
-
-    def results(self, target):
-        return None
-
-    def results_text(self, target):
-        return None
-
-
-class PyQuerySelector(Selector):
-    def results(self, target):
-        d = PyQuery(target)
-        return d(self.selector)
-
-    def result_text(self, target):
-        result = self.results(target)
-        return None if not result else result.text()
-
-
-class XpathSelector(Selector):
-    def results(self, target):
-        return target.xpath(self.selector)
-
-    def result_text(self, target):
-        result = self.results(target)
-        # Do your best
-        if not result:
-            return None
-        try:
-            return result.text
-        except AttributeError:
-            return result[0]
 
 
 class Feed:
-
-    _selectors = {
-        'jquery': PyQuerySelector,
-        'xpath': XpathSelector,
-        'default': PyQuerySelector,
-    }
 
     _selector_properties = [
         'updated',
@@ -88,74 +44,40 @@ class Feed:
         self.properties = self._parse_properties(parsed)
         self.entries = self._parse_entries(parsed)
 
-    def _choose_selector(self, selector_prop):
-        # If it's a string, assume default parser
-        if isinstance(selector_prop, str):
-            # And pass the string as the selector
-            return self._selectors['default'](selector_prop)
-        else:
-            # If it's not, use specified parser and pass 'selector' as the
-            # parser
-            return self._selectors[
-                selector_prop['selector_type']
-            ](selector_prop['selector'])
-
-    def _attempt_regex(self, selector_prop, selector_text):
-        if isinstance(selector_prop, str):
-            return selector_text
-
-        if 'regex' in selector_prop:
-            match = re.search(
-                selector_prop['regex'],
-                selector_text,
-            )
-            if match:
-                selector_text = match.groups('')[0]
-        return selector_text
-
     def _parse_entries(self, htmltree):
         _entries = []
         print("Working on entries")
         config_entries = self.config['entries']
 
-        selectorParser = self._choose_selector(config_entries)
+        entries_selector = Selector(config_entries, multiple=True)
 
         print("Using selector \"{}\" with selector type {}".format(
-            selectorParser.selector,
-            selectorParser.__class__.__name__,
+            entries_selector.selector,
+            entries_selector.SelectorType.__class__.__name__,
         ))
 
-        result_entries = selectorParser.results(htmltree)
+        result_entries = entries_selector.result(htmltree)
         print('Got {} entries'.format(
             len(result_entries)
         ))
+
         for entry in result_entries:
             print('Working on entry {}'.format(entry))
             tmp_entry = {}
+
             for property in self._entry_selector_properties:
                 if property not in config_entries:
                     continue
                 print('Working on prop {}'.format(property))
 
-                selectorParser = self._choose_selector(
-                    config_entries[property]
-                )
-                result_text = selectorParser.result_text(entry)
-                result_text = self._attempt_regex(
-                    config_entries[property],
-                    result_text,
-                )
+                args = {
+                    'selector': config_entries[property],
+                }
                 if property in self._dates:
-                    args = {
-                        'date_string': result_text,
-                        'languages': ['en'],
-                    }
-                    if 'date_format' in config_entries[property]:
-                        args['date_formats'] = [
-                            config_entries[property]['date_format'],
-                        ]
-                    result_text = dateparser.parse(**args)
-                tmp_entry[property] = result_text
+                    args['is_date'] = True
+                selector = Selector(**args)
+                tmp_entry[property] = selector.result(entry)
+
             _entries.append(tmp_entry)
         return _entries
 
@@ -170,30 +92,21 @@ class Feed:
 
             print('Working on {}'.format(property))
 
-            selectorParser = self._choose_selector(config_props[property])
+            args = {
+                'selector': config_props[property],
+            }
+            if property in self._dates:
+                args['is_date'] = True
+            selector = Selector(**args)
 
             print("Using selector \"{}\" with selector type {}".format(
-                selectorParser.selector,
-                selectorParser.__class__.__name__,
+                selector.selector,
+                selector.SelectorType.__class__.__name__,
             ))
 
-            result_text = selectorParser.result_text(htmltree)
+            result_text = selector.result(htmltree)
             print('Found prop value {}'.format(result_text))
 
-            result_text = self._attempt_regex(
-                config_props[property],
-                result_text,
-            )
-            if property in self._dates:
-                args = {
-                    'date_string': result_text,
-                    'languages': ['en'],
-                }
-                if 'date_format' in config_props[property]:
-                    args['date_formats'] = [
-                        config_props[property]['date_format'],
-                    ]
-                result_text = dateparser.parse(**args)
             _properties[property] = result_text
 
         return _properties
