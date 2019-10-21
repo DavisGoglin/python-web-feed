@@ -3,7 +3,6 @@ import requests
 import lxml
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
 
 class Feed:
 
@@ -37,7 +36,10 @@ class Feed:
     def load(self, url=None):
         logging.info("Loading data from {}".format(url))
         url = url or self.url
-        request = requests.get(url)
+        headers = {}
+        if 'user_agent' in self.config:
+            headers['User-Agent'] = self.config['user_agent']
+        request = requests.get(url, headers=headers)
         request.raise_for_status()
         self._raw = request.text
 

@@ -3,6 +3,7 @@ date_rounding: day
 feeds:
   example:
     url: http://localhost:8000/example.html
+    user_agent: "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:64.0) Gecko/20100101 Firefox/64.0"
 
     properties:
       updated:

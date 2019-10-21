@@ -17,6 +17,8 @@ def _round_date(dt, rounding):
         return dt.replace(hour=0, minute=0, second=0, microsecond=0)
     elif rounding == 'hour':
         return dt.replace(minute=0, second=0, microsecond=0)
+    elif rounding == 'none' or rounding is None:
+        return dt
     else:
         raise Exception
 
@@ -50,7 +52,7 @@ def display_feed(feed_name):
             _round_date(
                 max(
                     [e['updated'] for e in f.entries]
-                ), config['date_rounding']
+                ), config.get('date_rounding', None)
             )
         )
     )
@@ -63,7 +65,7 @@ def display_feed(feed_name):
         fe.updated(
             timezone.localize(
                 _round_date(
-                    entry['updated'], config['date_rounding']
+                    entry['updated'], config.get('date_rounding', None)
                 )
             )
         )
