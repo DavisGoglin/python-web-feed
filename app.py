@@ -40,12 +40,18 @@ def display_feed(feed_name):
 
     fg = FeedGenerator()
 
-    fg.id(f.url)
+    fg.id(
+        request.base_url
+    )
+    fg.link(
+        href=request.base_url,
+        rel='self',
+    )
     fg.title(
         f.properties.get('title', feed_name)
     )
     fg.author(
-        f.properties.get('author', '')
+        name=f.properties.get('author', '')
     )
     fg.updated(
         timezone.localize(
@@ -69,6 +75,7 @@ def display_feed(feed_name):
                 )
             )
         )
+        fe.content(entry['content'])
     atomfeed = fg.atom_str()
 
     resp = make_response(atomfeed)

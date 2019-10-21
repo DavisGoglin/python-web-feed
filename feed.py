@@ -16,6 +16,7 @@ class Feed:
         'title',
         'updated',
         'url',
+        'content',
     ]
 
     _dates = [
