@@ -1,12 +1,20 @@
-from flask import Flask, escape, request, abort, make_response
+from flask import Flask, request, abort, make_response
 import yaml
 from feedgen.feed import FeedGenerator
 from feed import Feed
 import pytz
+from os import environ
+
+_generator = {
+    'generator': 'python-web-feed',
+    'version':   '0.1',
+    'uri':       'https://github.com/DavisGoglin/python-web-feed',
+}
 
 app = Flask(__name__)
 
-with open('example.yaml', 'r') as f:
+config_file = environ.get('PY_WEB_FEED_CONFIG', 'example.yaml')
+with open(config_file, 'r') as f:
     config = yaml.load(f, Loader=yaml.BaseLoader)
 
 timezone = pytz.timezone(config['timezone'])
@@ -25,8 +33,7 @@ def _round_date(dt, rounding):
 
 @app.route('/')
 def hello():
-    name = request.args.get("name", "World")
-    return 'Hello, {}!'.format(escape(name))
+    return 'Hello, World!'
 
 
 @app.route('/<feed_name>')
@@ -40,6 +47,7 @@ def display_feed(feed_name):
 
     fg = FeedGenerator()
 
+    fg.generator(**_generator)
     fg.id(
         request.base_url
     )
