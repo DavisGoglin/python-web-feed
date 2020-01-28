@@ -24,3 +24,4 @@ feeds:
       url:
         selector_type: xpath
         selector: "span[1]/a/@href"
+      content: "span > a:first"
